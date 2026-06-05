@@ -1,0 +1,15 @@
+repository Demo;
+
+member Alice role developer workloadLimit 3;
+
+board Main {
+    column Backlog;
+}
+
+rule InvalidInactivePeriod {
+    on issue inactive 0 days;
+    when true;
+    do {
+        add comment "Invalid.";
+    }
+}

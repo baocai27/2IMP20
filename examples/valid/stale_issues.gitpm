@@ -1,0 +1,20 @@
+repository MaintenanceRepository;
+
+member Alice role developer workloadLimit 2;
+
+label stale;
+
+board MaintenanceBoard {
+    column Backlog;
+    column Active;
+    column Done;
+}
+
+rule MarkStale {
+    on issue inactive 14 days;
+    when isOpen() and not hasLabel(stale);
+    do {
+        add label stale;
+        add comment "This issue has been inactive for 14 days.";
+    }
+}

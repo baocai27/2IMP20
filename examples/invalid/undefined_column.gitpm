@@ -1,0 +1,15 @@
+repository Demo;
+
+member Alice role developer workloadLimit 3;
+
+board Main {
+    column Backlog;
+}
+
+rule MoveUnknown {
+    on issue opened;
+    when true;
+    do {
+        move to column Done;
+    }
+}

@@ -1,0 +1,15 @@
+repository Demo;
+
+member Alice role developer workloadLimit 3;
+
+board Main {
+    column Backlog;
+}
+
+rule MissingMilestone {
+    on issue opened;
+    when true;
+    do {
+        set milestone "Version 2.0";
+    }
+}

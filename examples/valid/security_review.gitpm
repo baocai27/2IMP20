@@ -1,0 +1,31 @@
+repository SecurityRepository;
+
+member Alice role developer workloadLimit 3;
+member Carol role reviewer workloadLimit 2;
+member Dave role maintainer workloadLimit 4;
+
+label securityReview;
+
+board SecurityBoard {
+    column Backlog;
+    column Review;
+    column Done;
+}
+
+rule RequestSecurityReview {
+    on pull request opened;
+    when changesPath("src/security/") and not hasReviewer();
+    do {
+        request review using leastBusy reviewer;
+        add label securityReview;
+        move to column Review;
+    }
+}
+
+rule FinishSecurityReview {
+    on pull request merged;
+    when isMerged();
+    do {
+        move to column Done;
+    }
+}

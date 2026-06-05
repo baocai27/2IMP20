@@ -1,0 +1,22 @@
+repository BugRepository;
+
+member Alice role developer workloadLimit 3;
+member Bob role developer workloadLimit 3;
+
+label bug;
+
+board BugBoard {
+    column Backlog;
+    column "In Progress";
+    column Done;
+}
+
+rule AssignBug {
+    on issue opened;
+    when hasLabel(bug) and isUnassigned();
+    do {
+        assign using leastBusy developer;
+        set priority high;
+        move to column "In Progress";
+    }
+}

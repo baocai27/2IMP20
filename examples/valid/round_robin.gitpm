@@ -1,0 +1,34 @@
+repository RoundRobinRepository;
+
+member Alice role developer workloadLimit 3;
+member Bob role developer workloadLimit 3;
+member Carol role developer workloadLimit 3;
+member ReviewerOne role reviewer workloadLimit 2;
+member ReviewerTwo role reviewer workloadLimit 2;
+
+label feature;
+
+board TeamBoard {
+    column Backlog;
+    column "In Progress";
+    column Review;
+    column Done;
+}
+
+rule AssignFeature {
+    on issue opened;
+    when hasLabel(feature) and isUnassigned();
+    do {
+        assign using roundRobin developer;
+        move to column "In Progress";
+    }
+}
+
+rule ReviewFeature {
+    on pull request opened;
+    when not hasReviewer();
+    do {
+        request review using roundRobin reviewer;
+        move to column Review;
+    }
+}

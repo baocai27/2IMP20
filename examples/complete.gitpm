@@ -1,0 +1,63 @@
+repository DemoRepository;
+
+member Alice role developer workloadLimit 3;
+member Bob role developer workloadLimit 2;
+member Carol role reviewer workloadLimit 2;
+member Dave role maintainer workloadLimit 4;
+
+label bug;
+label feature;
+label stale;
+label securityReview;
+
+milestone "Version 1.0";
+milestone "Version 2.0";
+
+board MainBoard {
+    column Backlog;
+    column "To Do";
+    column "In Progress";
+    column Review;
+    column Done;
+}
+
+rule AssignNewBug {
+    on issue opened;
+    when hasLabel(bug) and isUnassigned();
+    do {
+        assign using leastBusy developer;
+        set priority high;
+        move to column "In Progress";
+        set milestone "Version 1.0";  
+        add comment "The issue was assigned automatically.";
+    }
+}
+
+rule RequestSecurityReview {
+    on pull request opened;
+    when changesPath("src/security/") and not hasReviewer();
+    do {
+        request review using leastBusy reviewer;
+        add label securityReview;
+        move to column Review;
+        add comment "A security review is required.";
+    }
+}
+
+rule MarkInactiveIssue {
+    on issue inactive 14 days;
+    when not hasLabel(stale) and isOpen();
+    do {
+        add label stale;
+        add comment "This issue has been inactive for 14 days.";
+    }
+}
+
+rule CloseMergedPullRequest {
+    on pull request merged;
+    when isMerged();
+    do {
+        move to column Done;
+        add comment "The pull request was merged.";
+    }
+}

@@ -1,0 +1,15 @@
+repository Demo;
+
+member Alice role developer workloadLimit 3;
+
+board Main {
+    column Backlog;
+}
+
+rule MissingLabel {
+    on issue opened;
+    when hasLabel(bug);
+    do {
+        add comment "Bug found.";
+    }
+}

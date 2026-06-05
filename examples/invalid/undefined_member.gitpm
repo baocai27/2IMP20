@@ -1,0 +1,15 @@
+repository Demo;
+
+member Alice role developer workloadLimit 3;
+
+board Main {
+    column Backlog;
+}
+
+rule AssignUnknown {
+    on issue opened;
+    when true;
+    do {
+        assign member Bob;
+    }
+}

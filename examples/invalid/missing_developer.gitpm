@@ -1,0 +1,15 @@
+repository Demo;
+
+member Carol role reviewer workloadLimit 2;
+
+board Main {
+    column Backlog;
+}
+
+rule AssignWithoutDeveloper {
+    on issue opened;
+    when true;
+    do {
+        assign using leastBusy developer;
+    }
+}

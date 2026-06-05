@@ -1,0 +1,14 @@
+repository Demo;
+
+member Alice role developer workloadLimit 3;
+
+board Main {
+    column Backlog;
+}
+
+rule EmptyRule {
+    on issue opened;
+    when true;
+    do {
+    }
+}
