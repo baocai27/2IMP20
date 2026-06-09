@@ -1,0 +1,20 @@
+repository DemoRepository;
+
+member Alice role developer workloadLimit 3;
+
+label bug;
+label bug;
+
+board MainBoard {
+    column Backlog;
+    column "In Progress";
+}
+
+rule AssignBug {
+    on issue opened;
+    when hasLabel(bug);
+    do {
+        assign using leastBusy developer;
+        move to column "In Progress";
+    }
+}

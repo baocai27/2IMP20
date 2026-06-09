@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import date
+from enum import member
 from typing import Any, Dict, List, Optional
+
+from tomlkit import item
 
 
 @dataclass
@@ -293,26 +296,20 @@ class ProjectState:
         if item.assignee == member_name:
             return
 
-        if item.assignee is not None:
-            self._decrease_workload(item.assignee)
-
         member = self.members[member_name]
+
         if not member.available():
             print(f"  - member {member_name} is at workload limit")
             return
 
+        old_assignee = item.assignee
+
+        if old_assignee is not None:
+            self._decrease_workload(old_assignee)
+
         item.assignee = member_name
         member.workload += 1
         print(f"  - assigned {member_name}")
-
-    def _unassign_member(self, item: WorkItem) -> None:
-        if not isinstance(item, Issue) or item.assignee is None:
-            return
-
-        old_assignee = item.assignee
-        self._decrease_workload(old_assignee)
-        item.assignee = None
-        print(f"  - unassigned {old_assignee}")
 
     def _request_review(self, item: WorkItem, member_name: str) -> None:
         if not isinstance(item, PullRequest):
@@ -413,6 +410,10 @@ class ProjectState:
 
 
 def run_demo(project: ProjectState) -> None:
+    if project.repository == "RoundRobinRepository":
+        run_round_robin_demo(project)
+        return
+
     issue = Issue(
         number=1,
         title="Login fails for some users",
@@ -438,5 +439,28 @@ def run_demo(project: ProjectState) -> None:
     pull_request.state = "merged"
     project.dispatch("pull_request_merged", pull_request)
 
+
+def run_round_robin_demo(project: ProjectState) -> None:
+    for issue_number in range(1, 4):
+        issue = Issue(
+            number=issue_number,
+            title=f"Feature request {issue_number}",
+            labels=["feature"],
+            column="Backlog",
+            opened_by="Reporter",
+        )
+        project.add_issue(issue)
+        project.dispatch("issue_opened", issue)
+
+    for pull_request_number in range(4, 6):
+        pull_request = PullRequest(
+            number=pull_request_number,
+            title=f"Feature pull request {pull_request_number}",
+            author="Alice",
+            changed_files=["src/features/new_feature.py"],
+            column="Backlog",
+        )
+        project.add_pull_request(pull_request)
+        project.dispatch("pull_request_opened", pull_request)
 
 

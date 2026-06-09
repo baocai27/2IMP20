@@ -359,3 +359,188 @@ test bool generatorIncludesRuleName() {
         "AssignNewBug"
     );
 }
+
+
+test bool detectsMissingRepository() {
+    Program invalidProgram =
+        program(
+            [
+                memberDeclaration(
+                    "Alice",
+                    developer(),
+                    3
+                ),
+                boardDeclaration(
+                    "MainBoard",
+                    [
+                        boardColumn("Backlog")
+                    ]
+                )
+            ],
+            [
+                rule(
+                    "KeepOpen",
+                    issueEvent(issueOpenedKind()),
+                    trueCondition(),
+                    [
+                        addComment("Opened.")
+                    ]
+                )
+            ]
+        );
+
+    return hasErrors(checkProgram(invalidProgram));
+}
+
+
+test bool detectsMultipleRepositories() {
+    Program invalidProgram =
+        program(
+            [
+                repositoryDeclaration("RepositoryOne"),
+                repositoryDeclaration("RepositoryTwo"),
+                memberDeclaration(
+                    "Alice",
+                    developer(),
+                    3
+                ),
+                boardDeclaration(
+                    "MainBoard",
+                    [
+                        boardColumn("Backlog")
+                    ]
+                )
+            ],
+            [
+                rule(
+                    "KeepOpen",
+                    issueEvent(issueOpenedKind()),
+                    trueCondition(),
+                    [
+                        addComment("Opened.")
+                    ]
+                )
+            ]
+        );
+
+    return hasErrors(checkProgram(invalidProgram));
+}
+
+
+test bool detectsDuplicateLabel() {
+    str sourceText =
+        "repository Demo;\n"
+        + "member Alice role developer workloadLimit 3;\n"
+        + "label bug;\n"
+        + "label bug;\n"
+        + "board MainBoard { column Backlog; }\n"
+        + "rule KeepOpen {\n"
+        + "    on issue opened;\n"
+        + "    when true;\n"
+        + "    do { add comment \"Opened.\"; }\n"
+        + "}\n";
+
+    return hasErrors(checkProgram(parseText(sourceText)));
+}
+
+
+test bool detectsDuplicateMilestone() {
+    str sourceText =
+        "repository Demo;\n"
+        + "member Alice role developer workloadLimit 3;\n"
+        + "milestone \"Version 1.0\";\n"
+        + "milestone \"Version 1.0\";\n"
+        + "board MainBoard { column Backlog; }\n"
+        + "rule KeepOpen {\n"
+        + "    on issue opened;\n"
+        + "    when true;\n"
+        + "    do { add comment \"Opened.\"; }\n"
+        + "}\n";
+
+    return hasErrors(checkProgram(parseText(sourceText)));
+}
+
+
+test bool detectsDuplicateBoard() {
+    str sourceText =
+        "repository Demo;\n"
+        + "member Alice role developer workloadLimit 3;\n"
+        + "board MainBoard { column Backlog; }\n"
+        + "board MainBoard { column Done; }\n"
+        + "rule KeepOpen {\n"
+        + "    on issue opened;\n"
+        + "    when true;\n"
+        + "    do { add comment \"Opened.\"; }\n"
+        + "}\n";
+
+    return hasErrors(checkProgram(parseText(sourceText)));
+}
+
+
+test bool detectsDuplicateColumn() {
+    str sourceText =
+        "repository Demo;\n"
+        + "member Alice role developer workloadLimit 3;\n"
+        + "board MainBoard {\n"
+        + "    column Backlog;\n"
+        + "    column Backlog;\n"
+        + "}\n"
+        + "rule KeepOpen {\n"
+        + "    on issue opened;\n"
+        + "    when true;\n"
+        + "    do { add comment \"Opened.\"; }\n"
+        + "}\n";
+
+    return hasErrors(checkProgram(parseText(sourceText)));
+}
+
+
+test bool detectsEmptyBoard() {
+    Program invalidProgram =
+        program(
+            [
+                repositoryDeclaration("Demo"),
+                memberDeclaration(
+                    "Alice",
+                    developer(),
+                    3
+                ),
+                boardDeclaration(
+                    "MainBoard",
+                    []
+                )
+            ],
+            [
+                rule(
+                    "KeepOpen",
+                    issueEvent(issueOpenedKind()),
+                    trueCondition(),
+                    [
+                        addComment("Opened.")
+                    ]
+                )
+            ]
+        );
+
+    return hasErrors(checkProgram(invalidProgram));
+}
+
+
+test bool detectsDuplicateRule() {
+    str sourceText =
+        "repository Demo;\n"
+        + "member Alice role developer workloadLimit 3;\n"
+        + "board MainBoard { column Backlog; }\n"
+        + "rule DuplicateRule {\n"
+        + "    on issue opened;\n"
+        + "    when true;\n"
+        + "    do { add comment \"First.\"; }\n"
+        + "}\n"
+        + "rule DuplicateRule {\n"
+        + "    on issue closed;\n"
+        + "    when true;\n"
+        + "    do { add comment \"Second.\"; }\n"
+        + "}\n";
+
+    return hasErrors(checkProgram(parseText(sourceText)));
+}
