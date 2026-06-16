@@ -63,6 +63,121 @@ bool containsPullRequestCondition(Condition condition) {
 }
 
 
+// Returns true when an expression contains issue-specific behavior.
+bool containsIssueExpression(Expression expression) {
+    if (conditionExpression(condition) := expression) {
+        return containsIssueCondition(condition);
+    }
+
+    if (inactiveDaysExpression() := expression) {
+        return true;
+    }
+
+    if (andExpression(left, right) := expression) {
+        return containsIssueExpression(left)
+            || containsIssueExpression(right);
+    }
+
+    if (orExpression(left, right) := expression) {
+        return containsIssueExpression(left)
+            || containsIssueExpression(right);
+    }
+
+    if (equalsExpression(left, right) := expression) {
+        return containsIssueExpression(left)
+            || containsIssueExpression(right);
+    }
+
+    if (notEqualsExpression(left, right) := expression) {
+        return containsIssueExpression(left)
+            || containsIssueExpression(right);
+    }
+
+    if (lessThanExpression(left, right) := expression) {
+        return containsIssueExpression(left)
+            || containsIssueExpression(right);
+    }
+
+    if (lessOrEqualExpression(left, right) := expression) {
+        return containsIssueExpression(left)
+            || containsIssueExpression(right);
+    }
+
+    if (greaterThanExpression(left, right) := expression) {
+        return containsIssueExpression(left)
+            || containsIssueExpression(right);
+    }
+
+    if (greaterOrEqualExpression(left, right) := expression) {
+        return containsIssueExpression(left)
+            || containsIssueExpression(right);
+    }
+
+    if (notExpression(inner) := expression) {
+        return containsIssueExpression(inner);
+    }
+
+    return false;
+}
+
+// Returns true when an expression contains pull-request-specific behavior.
+bool containsPullRequestExpression(Expression expression) {
+    if (conditionExpression(condition) := expression) {
+        return containsPullRequestCondition(condition);
+    }
+
+    if (reviewerCountExpression() := expression) {
+        return true;
+    }
+
+    if (andExpression(left, right) := expression) {
+        return containsPullRequestExpression(left)
+            || containsPullRequestExpression(right);
+    }
+
+    if (orExpression(left, right) := expression) {
+        return containsPullRequestExpression(left)
+            || containsPullRequestExpression(right);
+    }
+
+    if (equalsExpression(left, right) := expression) {
+        return containsPullRequestExpression(left)
+            || containsPullRequestExpression(right);
+    }
+
+    if (notEqualsExpression(left, right) := expression) {
+        return containsPullRequestExpression(left)
+            || containsPullRequestExpression(right);
+    }
+
+    if (lessThanExpression(left, right) := expression) {
+        return containsPullRequestExpression(left)
+            || containsPullRequestExpression(right);
+    }
+
+    if (lessOrEqualExpression(left, right) := expression) {
+        return containsPullRequestExpression(left)
+            || containsPullRequestExpression(right);
+    }
+
+    if (greaterThanExpression(left, right) := expression) {
+        return containsPullRequestExpression(left)
+            || containsPullRequestExpression(right);
+    }
+
+    if (greaterOrEqualExpression(left, right) := expression) {
+        return containsPullRequestExpression(left)
+            || containsPullRequestExpression(right);
+    }
+
+    if (notExpression(inner) := expression) {
+        return containsPullRequestExpression(inner);
+    }
+
+    return false;
+}
+
+
 bool isIssueAction(Action currentAction) {
     return assignMember(_) := currentAction
         || assignUsingStrategy(_, _) := currentAction

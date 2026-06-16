@@ -1,0 +1,47 @@
+repository ConditionalTriageRepository;
+
+member Alice role developer workloadLimit 3;
+member Bob role developer workloadLimit 3;
+
+label bug;
+label urgent;
+label stale;
+
+milestone "Version 1.0";
+
+board MainBoard {
+    column Backlog;
+    column "In Progress";
+    column Done;
+}
+
+rule ConditionalBugTriage {
+    on issue opened;
+    when hasLabel(bug) and isUnassigned();
+    do {
+        let urgentIssue =
+            titleContains("urgent")
+            or priorityEquals(critical);
+
+        let inactiveFor = inactiveDays();
+
+        assign using leastBusy developer;
+
+        if urgentIssue then {
+            add label urgent;
+            set priority critical;
+            move to column "In Progress";
+            add comment "Urgent bug was escalated automatically.";
+        } else {
+            set priority medium;
+            add comment "Normal bug was added to the regular queue.";
+        }
+
+        if inactiveFor >= 14 then {
+            add label stale;
+            add comment "This issue was already inactive for at least 14 days.";
+        } else {
+            set milestone "Version 1.0";
+        }
+    }
+}

@@ -9,7 +9,7 @@ MILESTONES = []
 
 BOARDS = {"MaintenanceBoard": ["Backlog", "Active", "Done"]}
 
-RULES = [{"name": "MarkStale", "event": {"kind": "issue_inactive", "value": 14}, "condition": {"kind": "and", "left": {"kind": "is_open"}, "right": {"kind": "not", "condition": {"kind": "has_label", "value": "stale"}}}, "actions": [{"kind": "add_label", "value": "stale"}, {"kind": "add_comment", "value": "This issue has been inactive for 14 days."}]}]
+RULES = [{"name": "MarkStale", "event": {"kind": "issue_inactive", "value": 14}, "condition": {"kind": "and", "left": {"kind": "is_open"}, "right": {"kind": "not", "condition": {"kind": "has_label", "value": "stale"}}}, "statements": [{"kind": "action", "action": {"kind": "add_label", "value": "stale"}}, {"kind": "action", "action": {"kind": "add_comment", "value": "This issue has been inactive for 14 days."}}]}]
 
 
 def build_project():

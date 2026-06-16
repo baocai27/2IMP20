@@ -383,7 +383,9 @@ test bool detectsMissingRepository() {
                     issueEvent(issueOpenedKind()),
                     trueCondition(),
                     [
-                        addComment("Opened.")
+                        actionStatement(
+                            addComment("Opened.")
+                        )
                     ]
                 )
             ]
@@ -417,7 +419,9 @@ test bool detectsMultipleRepositories() {
                     issueEvent(issueOpenedKind()),
                     trueCondition(),
                     [
-                        addComment("Opened.")
+                        actionStatement(
+                            addComment("Opened.")
+                        )
                     ]
                 )
             ]
@@ -516,7 +520,9 @@ test bool detectsEmptyBoard() {
                     issueEvent(issueOpenedKind()),
                     trueCondition(),
                     [
-                        addComment("Opened.")
+                        actionStatement(
+                            addComment("Opened.")
+                        )
                     ]
                 )
             ]
@@ -543,4 +549,241 @@ test bool detectsDuplicateRule() {
         + "}\n";
 
     return hasErrors(checkProgram(parseText(sourceText)));
+}
+
+
+test bool buildsVariableAndBranchingAst() {
+    str sourceText = baseProgram(
+        "rule ConditionalRule {\n"
+        + "    on issue opened;\n"
+        + "    when hasLabel(bug);\n"
+        + "    do {\n"
+        + "        let urgentIssue = "
+        + "titleContains(\"urgent\") "
+        + "or priorityEquals(critical);\n"
+        + "        if urgentIssue then {\n"
+        + "            add label stale;\n"
+        + "        } else {\n"
+        + "            add comment \"Regular issue.\";\n"
+        + "        }\n"
+        + "    }\n"
+        + "}\n"
+    );
+
+    Program parsedProgram = parseText(sourceText);
+
+    if (
+        program(
+            _,
+            [
+                rule(
+                    "ConditionalRule",
+                    _,
+                    _,
+                    [
+                        variableDeclaration(
+                            "urgentIssue",
+                            orExpression(
+                                conditionExpression(
+                                    titleContains("urgent")
+                                ),
+                                conditionExpression(
+                                    priorityEquals(critical())
+                                )
+                            )
+                        ),
+                        ifStatement(
+                            variableReference("urgentIssue"),
+                            [
+                                actionStatement(
+                                    addLabel("stale")
+                                )
+                            ],
+                            [
+                                actionStatement(
+                                    addComment("Regular issue.")
+                                )
+                            ]
+                        )
+                    ]
+                )
+            ]
+        ) := parsedProgram
+    ) {
+        return true;
+    }
+
+    return false;
+}
+
+
+test bool validVariableAndBranchingProgramHasNoDiagnostics() {
+    str sourceText = baseProgram(
+        "rule ConditionalRule {\n"
+        + "    on issue opened;\n"
+        + "    when hasLabel(bug);\n"
+        + "    do {\n"
+        + "        let urgentIssue = "
+        + "titleContains(\"urgent\") "
+        + "or priorityEquals(critical);\n"
+        + "        let inactiveFor = inactiveDays();\n"
+        + "        if urgentIssue then {\n"
+        + "            set priority critical;\n"
+        + "        } else {\n"
+        + "            set priority medium;\n"
+        + "        }\n"
+        + "        if inactiveFor \>= 14 then {\n"
+        + "            add label stale;\n"
+        + "        } else {\n"
+        + "            set milestone \"Version 1.0\";\n"
+        + "        }\n"
+        + "    }\n"
+        + "}\n"
+    );
+
+    return checkProgram(parseText(sourceText)) == [];
+}
+
+
+test bool detectsUndefinedVariable() {
+    str sourceText = baseProgram(
+        "rule UndefinedVariable {\n"
+        + "    on issue opened;\n"
+        + "    when hasLabel(bug);\n"
+        + "    do {\n"
+        + "        if urgentIssue then {\n"
+        + "            set priority critical;\n"
+        + "        } else {\n"
+        + "            set priority medium;\n"
+        + "        }\n"
+        + "    }\n"
+        + "}\n"
+    );
+
+    return hasErrors(checkProgram(parseText(sourceText)));
+}
+
+
+test bool detectsDuplicateVariable() {
+    str sourceText = baseProgram(
+        "rule DuplicateVariable {\n"
+        + "    on issue opened;\n"
+        + "    when hasLabel(bug);\n"
+        + "    do {\n"
+        + "        let urgentIssue = true;\n"
+        + "        let urgentIssue = false;\n"
+        + "        add comment \"Duplicate variable.\";\n"
+        + "    }\n"
+        + "}\n"
+    );
+
+    return hasErrors(checkProgram(parseText(sourceText)));
+}
+
+
+test bool detectsNonBooleanIfCondition() {
+    str sourceText = baseProgram(
+        "rule NonBooleanCondition {\n"
+        + "    on issue opened;\n"
+        + "    when hasLabel(bug);\n"
+        + "    do {\n"
+        + "        let inactiveFor = inactiveDays();\n"
+        + "        if inactiveFor then {\n"
+        + "            add comment \"Then branch.\";\n"
+        + "        } else {\n"
+        + "            add comment \"Else branch.\";\n"
+        + "        }\n"
+        + "    }\n"
+        + "}\n"
+    );
+
+    return hasErrors(checkProgram(parseText(sourceText)));
+}
+
+
+test bool detectsExpressionTypeMismatch() {
+    str sourceText = baseProgram(
+        "rule TypeMismatch {\n"
+        + "    on issue opened;\n"
+        + "    when hasLabel(bug);\n"
+        + "    do {\n"
+        + "        let invalidComparison = 3 == \"three\";\n"
+        + "        if invalidComparison then {\n"
+        + "            add comment \"Then branch.\";\n"
+        + "        } else {\n"
+        + "            add comment \"Else branch.\";\n"
+        + "        }\n"
+        + "    }\n"
+        + "}\n"
+    );
+
+    return hasErrors(checkProgram(parseText(sourceText)));
+}
+
+
+test bool detectsBranchLocalVariableEscape() {
+    str sourceText = baseProgram(
+        "rule BranchScope {\n"
+        + "    on issue opened;\n"
+        + "    when hasLabel(bug);\n"
+        + "    do {\n"
+        + "        if titleContains(\"urgent\") then {\n"
+        + "            let branchValue = \"critical\";\n"
+        + "            add comment \"Urgent branch.\";\n"
+        + "        } else {\n"
+        + "            add comment \"Regular branch.\";\n"
+        + "        }\n"
+        + "        if branchValue == \"critical\" then {\n"
+        + "            set priority critical;\n"
+        + "        } else {\n"
+        + "            set priority medium;\n"
+        + "        }\n"
+        + "    }\n"
+        + "}\n"
+    );
+
+    return hasErrors(checkProgram(parseText(sourceText)));
+}
+
+
+test bool generatorIncludesVariablesAndBranching() {
+    str sourceText = baseProgram(
+        "rule GeneratedBranch {\n"
+        + "    on issue opened;\n"
+        + "    when hasLabel(bug);\n"
+        + "    do {\n"
+        + "        let inactiveFor = inactiveDays();\n"
+        + "        if inactiveFor \>= 14 then {\n"
+        + "            add label stale;\n"
+        + "        } else {\n"
+        + "            add comment \"Still active.\";\n"
+        + "        }\n"
+        + "    }\n"
+        + "}\n"
+    );
+
+    str generatedCode = generateProgram(
+        parseText(sourceText)
+    );
+
+    return contains(
+            generatedCode,
+            "\"kind\": \"let\""
+        )
+        && contains(
+            generatedCode,
+            "\"name\": \"inactiveFor\""
+        )
+        && contains(
+            generatedCode,
+            "\"kind\": \"if\""
+        )
+        && contains(
+            generatedCode,
+            "\"kind\": \"greater_or_equal\""
+        )
+        && contains(
+            generatedCode,
+            "\"kind\": \"variable\""
+        );
 }

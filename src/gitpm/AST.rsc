@@ -64,9 +64,42 @@ data Rule
         str name,
         Event event,
         Condition condition,
-        list[Action] actions
+        list[Statement] statements
       );
 
+// Statements executed after a rule matches
+data Statement
+    = actionStatement(Action action)
+
+    | variableDeclaration(
+        str name,
+        Expression expression
+      )
+
+    | ifStatement(
+        Expression condition,
+        list[Statement] thenStatements,
+        list[Statement] elseStatements
+      );
+
+// Expressions used by variables and branching statements
+data Expression
+    = booleanLiteral(bool booleanValue)
+    | integerLiteral(int integerValue)
+    | stringLiteral(str stringValue)
+    | variableReference(str name)
+    | conditionExpression(Condition condition)
+    | inactiveDaysExpression()
+    | reviewerCountExpression()
+    | andExpression(Expression left, Expression right)
+    | orExpression(Expression left, Expression right)
+    | notExpression(Expression expression)
+    | equalsExpression(Expression left, Expression right)
+    | notEqualsExpression(Expression left, Expression right)
+    | lessThanExpression(Expression left, Expression right)
+    | lessOrEqualExpression(Expression left, Expression right)
+    | greaterThanExpression(Expression left, Expression right)
+    | greaterOrEqualExpression(Expression left, Expression right);
 
 // Events that can trigger a rule
 data Event

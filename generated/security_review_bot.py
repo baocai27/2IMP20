@@ -9,7 +9,7 @@ MILESTONES = []
 
 BOARDS = {"SecurityBoard": ["Backlog", "Review", "Done"]}
 
-RULES = [{"name": "RequestSecurityReview", "event": {"kind": "pull_request_opened"}, "condition": {"kind": "and", "left": {"kind": "changes_path", "value": "src/security/"}, "right": {"kind": "not", "condition": {"kind": "has_reviewer"}}}, "actions": [{"kind": "request_review_using_strategy", "strategy": "least_busy", "role": "reviewer"}, {"kind": "add_label", "value": "securityReview"}, {"kind": "move_to_column", "value": "Review"}]}, {"name": "FinishSecurityReview", "event": {"kind": "pull_request_merged"}, "condition": {"kind": "is_merged"}, "actions": [{"kind": "move_to_column", "value": "Done"}]}]
+RULES = [{"name": "RequestSecurityReview", "event": {"kind": "pull_request_opened"}, "condition": {"kind": "and", "left": {"kind": "changes_path", "value": "src/security/"}, "right": {"kind": "not", "condition": {"kind": "has_reviewer"}}}, "statements": [{"kind": "action", "action": {"kind": "request_review_using_strategy", "strategy": "least_busy", "role": "reviewer"}}, {"kind": "action", "action": {"kind": "add_label", "value": "securityReview"}}, {"kind": "action", "action": {"kind": "move_to_column", "value": "Review"}}]}, {"name": "FinishSecurityReview", "event": {"kind": "pull_request_merged"}, "condition": {"kind": "is_merged"}, "statements": [{"kind": "action", "action": {"kind": "move_to_column", "value": "Done"}}]}]
 
 
 def build_project():

@@ -1,0 +1,23 @@
+repository Demo;
+
+member Alice role developer workloadLimit 3;
+
+label bug;
+
+board MainBoard {
+    column Backlog;
+}
+
+rule NonBooleanCondition {
+    on issue opened;
+    when hasLabel(bug);
+    do {
+        let inactiveFor = inactiveDays();
+
+        if inactiveFor then {
+            add comment "Invalid then branch.";
+        } else {
+            add comment "Invalid else branch.";
+        }
+    }
+}

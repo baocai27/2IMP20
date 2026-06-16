@@ -5,7 +5,7 @@ import gitpm::AST;
 import gitpm::transform::Values;
 import gitpm::transform::Events;
 import gitpm::transform::Conditions;
-import gitpm::transform::Actions;
+import gitpm::transform::Statements;
 
 import ParseTree;
 
@@ -142,15 +142,17 @@ gitpm::AST::BoardColumn buildBoardColumn(
 
 gitpm::AST::Rule buildRule(
     (CstRule)
-        `rule <CstName name> { on <CstEvent event>; when <CstCondition condition>; do { <CstAction* actions> } }`
+        `rule <CstName name> { on <CstEvent event>; when <CstCondition condition>; do { <CstStatement* statements> } }`
 ) {
     return gitpm::AST::rule(
         buildName(name),
         buildEvent(event),
         buildCondition(condition),
-        [buildAction(action) | action <- actions]
+        [
+            buildStatement(statement)
+            | statement <- statements
+        ]
     );
 }
-
 
 // Issue events

@@ -8,7 +8,7 @@ import String;
 import List;
 
 
-// Generates one self-contained Python program
+// Generates a Python configuration module for the reusable GitPM runtime.
 str generateProgram(Program inputProgram) {
     if (program(declarations, rules) := inputProgram) {
         return generateConfiguration(declarations, rules);
@@ -115,20 +115,195 @@ str generateConfiguration(
 
 
 str generateRule(Rule currentRule) {
-    if (rule(name, trigger, condition, actions) := currentRule) {
-        list[str] actionValues = [];
+    if (rule(name, trigger, condition, statements) := currentRule) {
+        list[str] statementValues = [];
 
-        for (Action currentAction <- actions) {
-            actionValues = actionValues + [generateAction(currentAction)];
+        for (Statement statement <- statements) {
+            statementValues = statementValues
+                + [generateStatement(statement)];
         }
 
         return "{\"name\": " + pythonString(name)
             + ", \"event\": " + generateEvent(trigger)
             + ", \"condition\": " + generateCondition(condition)
-            + ", \"actions\": [" + joinValues(actionValues) + "]}";
+            + ", \"statements\": ["
+            + joinValues(statementValues)
+            + "]}";
     }
 
     return "{}";
+}
+
+str generateStatement(Statement statement) {
+    if (actionStatement(currentAction) := statement) {
+        return "{\"kind\": \"action\", \"action\": "
+            + generateAction(currentAction)
+            + "}";
+    }
+
+    if (variableDeclaration(name, expression) := statement) {
+        return "{\"kind\": \"let\", \"name\": "
+            + pythonString(name)
+            + ", \"expression\": "
+            + generateExpression(expression)
+            + "}";
+    }
+
+    if (
+        ifStatement(
+            condition,
+            thenStatements,
+            elseStatements
+        ) := statement
+    ) {
+        list[str] thenValues = [
+            generateStatement(currentStatement)
+            | currentStatement <- thenStatements
+        ];
+
+        list[str] elseValues = [
+            generateStatement(currentStatement)
+            | currentStatement <- elseStatements
+        ];
+
+        return "{\"kind\": \"if\", \"condition\": "
+            + generateExpression(condition)
+            + ", \"then\": ["
+            + joinValues(thenValues)
+            + "], \"else\": ["
+            + joinValues(elseValues)
+            + "]}";
+    }
+
+    return "{}";
+}
+
+str generateExpression(Expression expression) {
+    if (booleanLiteral(booleanValue) := expression) {
+        return dictionaryValue(
+            "boolean",
+            pythonBoolean(booleanValue)
+        );
+    }
+
+    if (integerLiteral(integerValue) := expression) {
+        return dictionaryValue(
+            "integer",
+            "<integerValue>"
+        );
+    }
+
+    if (stringLiteral(stringValue) := expression) {
+        return dictionaryValue(
+            "string",
+            pythonString(stringValue)
+        );
+    }
+
+    if (variableReference(name) := expression) {
+        return dictionaryValue(
+            "variable",
+            pythonString(name)
+        );
+    }
+
+    if (conditionExpression(condition) := expression) {
+        return generateCondition(condition);
+    }
+
+    if (inactiveDaysExpression() := expression) {
+        return dictionary("inactive_days");
+    }
+
+    if (reviewerCountExpression() := expression) {
+        return dictionary("reviewer_count");
+    }
+
+    if (andExpression(left, right) := expression) {
+        return binaryExpression(
+            "and",
+            left,
+            right
+        );
+    }
+
+    if (orExpression(left, right) := expression) {
+        return binaryExpression(
+            "or",
+            left,
+            right
+        );
+    }
+
+    if (notExpression(innerExpression) := expression) {
+        return "{\"kind\": \"not\", \"condition\": "
+            + generateExpression(innerExpression)
+            + "}";
+    }
+
+    if (equalsExpression(left, right) := expression) {
+        return binaryExpression(
+            "equals",
+            left,
+            right
+        );
+    }
+
+    if (notEqualsExpression(left, right) := expression) {
+        return binaryExpression(
+            "not_equals",
+            left,
+            right
+        );
+    }
+
+    if (lessThanExpression(left, right) := expression) {
+        return binaryExpression(
+            "less_than",
+            left,
+            right
+        );
+    }
+
+    if (lessOrEqualExpression(left, right) := expression) {
+        return binaryExpression(
+            "less_or_equal",
+            left,
+            right
+        );
+    }
+
+    if (greaterThanExpression(left, right) := expression) {
+        return binaryExpression(
+            "greater_than",
+            left,
+            right
+        );
+    }
+
+    if (greaterOrEqualExpression(left, right) := expression) {
+        return binaryExpression(
+            "greater_or_equal",
+            left,
+            right
+        );
+    }
+
+    return dictionary("unknown");
+}
+
+str binaryExpression(
+    str kind,
+    Expression left,
+    Expression right
+) {
+    return "{\"kind\": "
+        + pythonString(kind)
+        + ", \"left\": "
+        + generateExpression(left)
+        + ", \"right\": "
+        + generateExpression(right)
+        + "}";
 }
 
 

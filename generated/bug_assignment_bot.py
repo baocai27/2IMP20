@@ -9,7 +9,7 @@ MILESTONES = []
 
 BOARDS = {"BugBoard": ["Backlog", "In Progress", "Done"]}
 
-RULES = [{"name": "AssignBug", "event": {"kind": "issue_opened"}, "condition": {"kind": "and", "left": {"kind": "has_label", "value": "bug"}, "right": {"kind": "is_unassigned"}}, "actions": [{"kind": "assign_using_strategy", "strategy": "least_busy", "role": "developer"}, {"kind": "set_priority", "value": "high"}, {"kind": "move_to_column", "value": "In Progress"}]}]
+RULES = [{"name": "AssignBug", "event": {"kind": "issue_opened"}, "condition": {"kind": "and", "left": {"kind": "has_label", "value": "bug"}, "right": {"kind": "is_unassigned"}}, "statements": [{"kind": "action", "action": {"kind": "assign_using_strategy", "strategy": "least_busy", "role": "developer"}}, {"kind": "action", "action": {"kind": "set_priority", "value": "high"}}, {"kind": "action", "action": {"kind": "move_to_column", "value": "In Progress"}}]}]
 
 
 def build_project():

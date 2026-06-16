@@ -1,0 +1,20 @@
+repository Demo;
+
+member Alice role developer workloadLimit 3;
+
+label bug;
+
+board MainBoard {
+    column Backlog;
+}
+
+rule DuplicateVariable {
+    on issue opened;
+    when hasLabel(bug);
+    do {
+        let urgentIssue = true;
+        let urgentIssue = false;
+
+        add comment "Duplicate local variable.";
+    }
+}

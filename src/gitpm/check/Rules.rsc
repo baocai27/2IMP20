@@ -4,9 +4,25 @@ import gitpm::AST;
 import gitpm::check::Diagnostics;
 import gitpm::check::References;
 import gitpm::check::Compatibility;
+import gitpm::check::Expressions;
 
 import String;
 import List;
+
+
+data StatementCheck
+    = statementCheck(
+        list[Diagnostic] diagnostics,
+        list[VariableBinding] environment
+      );
+
+
+data StatementBlockCheck
+    = statementBlockCheck(
+        list[Diagnostic] diagnostics,
+        list[VariableBinding] environment
+      );
+
 
 list[Diagnostic] checkRules(
     list[Declaration] declarations,
@@ -37,16 +53,24 @@ list[Diagnostic] checkRule(
 ) {
     list[Diagnostic] result = [];
 
-    if (rule(name, trigger, condition, actions) := currentRule) {
+    if (rule(name, trigger, condition, statements) := currentRule) {
         result = result + checkName("Rule", name);
         result = result + checkEvent(name, trigger, declarations);
         result = result + checkCondition(name, condition, declarations);
 
-        if (List::size(actions) == 0) {
+        if (List::size(statements) == 0) {
             result = result + [
                 diagnostic(
                     errorSeverity(),
-                    "Rule <name> must contain at least one action."
+                    "Rule <name> must contain at least one statement."
+                )
+            ];
+        }
+        else if (!containsActionStatement(statements)) {
+            result = result + [
+                diagnostic(
+                    errorSeverity(),
+                    "Rule <name> must contain at least one executable action."
                 )
             ];
         }
@@ -71,28 +95,16 @@ list[Diagnostic] checkRule(
             ];
         }
 
-        for (Action currentAction <- actions) {
-            result = result + checkAction(name, currentAction, declarations);
+        StatementBlockCheck blockCheck = checkStatementBlock(
+            name,
+            trigger,
+            statements,
+            declarations,
+            []
+        );
 
-            if (isIssueEvent(trigger)
-                && isPullRequestAction(currentAction)) {
-                result = result + [
-                    diagnostic(
-                        errorSeverity(),
-                        "Rule <name> uses a pull request action with an issue event."
-                    )
-                ];
-            }
-
-            if (isPullRequestEvent(trigger)
-                && isIssueAction(currentAction)) {
-                result = result + [
-                    diagnostic(
-                        errorSeverity(),
-                        "Rule <name> uses an issue action with a pull request event."
-                    )
-                ];
-            }
+        if (statementBlockCheck(statementDiagnostics, _) := blockCheck) {
+            result = result + statementDiagnostics;
         }
     }
 
@@ -100,8 +112,318 @@ list[Diagnostic] checkRule(
 }
 
 
-// Event checks
+StatementBlockCheck checkStatementBlock(
+    str ruleName,
+    Event trigger,
+    list[Statement] statements,
+    list[Declaration] declarations,
+    list[VariableBinding] environment
+) {
+    list[Diagnostic] result = [];
+    list[VariableBinding] currentEnvironment = environment;
 
+    for (Statement statement <- statements) {
+        StatementCheck currentCheck = checkStatement(
+            ruleName,
+            trigger,
+            statement,
+            declarations,
+            currentEnvironment
+        );
+
+        if (statementCheck(diagnostics, updatedEnvironment) := currentCheck) {
+            result = result + diagnostics;
+            currentEnvironment = updatedEnvironment;
+        }
+    }
+
+    return statementBlockCheck(result, currentEnvironment);
+}
+
+
+StatementCheck checkStatement(
+    str ruleName,
+    Event trigger,
+    Statement statement,
+    list[Declaration] declarations,
+    list[VariableBinding] environment
+) {
+    list[Diagnostic] result = [];
+
+    if (actionStatement(currentAction) := statement) {
+        result = result + checkAction(
+            ruleName,
+            currentAction,
+            declarations
+        );
+        result = result + checkActionCompatibility(
+            ruleName,
+            trigger,
+            currentAction
+        );
+
+        return statementCheck(result, environment);
+    }
+
+    if (variableDeclaration(name, expression) := statement) {
+        result = result + checkName("Variable", name);
+        result = result + checkExpressionReferences(
+            ruleName,
+            expression,
+            declarations
+        );
+        result = result + checkExpressionCompatibility(
+            ruleName,
+            trigger,
+            expression
+        );
+
+        ExpressionType declaredType = unknownType();
+        ExpressionCheck typeCheck = checkExpressionTypes(
+            ruleName,
+            expression,
+            environment
+        );
+
+        if (expressionCheck(typeDiagnostics, expressionType) := typeCheck) {
+            result = result + typeDiagnostics;
+            declaredType = expressionType;
+        }
+
+        if (hasVariable(name, environment)) {
+            result = result + [
+                diagnostic(
+                    errorSeverity(),
+                    "Rule <ruleName> declares variable <name>, but that name is already visible in the current scope."
+                )
+            ];
+            return statementCheck(result, environment);
+        }
+
+        return statementCheck(
+            result,
+            environment + [variableBinding(name, declaredType)]
+        );
+    }
+
+    if (ifStatement(condition, thenStatements, elseStatements) := statement) {
+        result = result + checkExpressionReferences(
+            ruleName,
+            condition,
+            declarations
+        );
+        result = result + checkExpressionCompatibility(
+            ruleName,
+            trigger,
+            condition
+        );
+
+        ExpressionCheck typeCheck = checkExpressionTypes(
+            ruleName,
+            condition,
+            environment
+        );
+
+        if (expressionCheck(typeDiagnostics, conditionType) := typeCheck) {
+            result = result + typeDiagnostics;
+
+            if (!isUnknown(conditionType)
+                && !isBoolean(conditionType)) {
+                result = result + [
+                    diagnostic(
+                        errorSeverity(),
+                        "Rule <ruleName> uses a non-Boolean expression as an if condition."
+                    )
+                ];
+            }
+        }
+
+        if (thenStatements == []) {
+            result = result + [
+                diagnostic(
+                    errorSeverity(),
+                    "Rule <ruleName> contains an empty then branch."
+                )
+            ];
+        }
+
+        if (elseStatements == []) {
+            result = result + [
+                diagnostic(
+                    errorSeverity(),
+                    "Rule <ruleName> contains an empty else branch."
+                )
+            ];
+        }
+
+        StatementBlockCheck thenCheck = checkStatementBlock(
+            ruleName,
+            trigger,
+            thenStatements,
+            declarations,
+            environment
+        );
+        StatementBlockCheck elseCheck = checkStatementBlock(
+            ruleName,
+            trigger,
+            elseStatements,
+            declarations,
+            environment
+        );
+
+        if (statementBlockCheck(thenDiagnostics, _) := thenCheck) {
+            result = result + thenDiagnostics;
+        }
+
+        if (statementBlockCheck(elseDiagnostics, _) := elseCheck) {
+            result = result + elseDiagnostics;
+        }
+
+        // Variables declared inside a branch do not leave that branch.
+        return statementCheck(result, environment);
+    }
+
+    return statementCheck(result, environment);
+}
+
+
+bool containsActionStatement(list[Statement] statements) {
+    for (Statement statement <- statements) {
+        if (actionStatement(_) := statement) {
+            return true;
+        }
+
+        if (ifStatement(_, thenStatements, elseStatements) := statement
+            && (containsActionStatement(thenStatements)
+                || containsActionStatement(elseStatements))) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+list[Diagnostic] checkExpressionReferences(
+    str ruleName,
+    Expression expression,
+    list[Declaration] declarations
+) {
+    if (conditionExpression(condition) := expression) {
+        return checkCondition(ruleName, condition, declarations);
+    }
+
+    if (andExpression(left, right) := expression) {
+        return checkExpressionReferences(ruleName, left, declarations)
+            + checkExpressionReferences(ruleName, right, declarations);
+    }
+
+    if (orExpression(left, right) := expression) {
+        return checkExpressionReferences(ruleName, left, declarations)
+            + checkExpressionReferences(ruleName, right, declarations);
+    }
+
+    if (equalsExpression(left, right) := expression) {
+        return checkExpressionReferences(ruleName, left, declarations)
+            + checkExpressionReferences(ruleName, right, declarations);
+    }
+
+    if (notEqualsExpression(left, right) := expression) {
+        return checkExpressionReferences(ruleName, left, declarations)
+            + checkExpressionReferences(ruleName, right, declarations);
+    }
+
+    if (lessThanExpression(left, right) := expression) {
+        return checkExpressionReferences(ruleName, left, declarations)
+            + checkExpressionReferences(ruleName, right, declarations);
+    }
+
+    if (lessOrEqualExpression(left, right) := expression) {
+        return checkExpressionReferences(ruleName, left, declarations)
+            + checkExpressionReferences(ruleName, right, declarations);
+    }
+
+    if (greaterThanExpression(left, right) := expression) {
+        return checkExpressionReferences(ruleName, left, declarations)
+            + checkExpressionReferences(ruleName, right, declarations);
+    }
+
+    if (greaterOrEqualExpression(left, right) := expression) {
+        return checkExpressionReferences(ruleName, left, declarations)
+            + checkExpressionReferences(ruleName, right, declarations);
+    }
+
+    if (notExpression(inner) := expression) {
+        return checkExpressionReferences(ruleName, inner, declarations);
+    }
+
+    return [];
+}
+
+
+list[Diagnostic] checkExpressionCompatibility(
+    str ruleName,
+    Event trigger,
+    Expression expression
+) {
+    list[Diagnostic] result = [];
+
+    if (isIssueEvent(trigger)
+        && containsPullRequestExpression(expression)) {
+        result = result + [
+            diagnostic(
+                errorSeverity(),
+                "Rule <ruleName> uses a pull request expression with an issue event."
+            )
+        ];
+    }
+
+    if (isPullRequestEvent(trigger)
+        && containsIssueExpression(expression)) {
+        result = result + [
+            diagnostic(
+                errorSeverity(),
+                "Rule <ruleName> uses an issue expression with a pull request event."
+            )
+        ];
+    }
+
+    return result;
+}
+
+
+list[Diagnostic] checkActionCompatibility(
+    str ruleName,
+    Event trigger,
+    Action currentAction
+) {
+    list[Diagnostic] result = [];
+
+    if (isIssueEvent(trigger)
+        && isPullRequestAction(currentAction)) {
+        result = result + [
+            diagnostic(
+                errorSeverity(),
+                "Rule <ruleName> uses a pull request action with an issue event."
+            )
+        ];
+    }
+
+    if (isPullRequestEvent(trigger)
+        && isIssueAction(currentAction)) {
+        result = result + [
+            diagnostic(
+                errorSeverity(),
+                "Rule <ruleName> uses an issue action with a pull request event."
+            )
+        ];
+    }
+
+    return result;
+}
+
+
+// Event checks
 list[Diagnostic] checkEvent(
     str ruleName,
     Event trigger,
@@ -139,7 +461,6 @@ list[Diagnostic] checkEvent(
 
 
 // Condition checks
-
 list[Diagnostic] checkCondition(
     str ruleName,
     Condition condition,
@@ -148,15 +469,13 @@ list[Diagnostic] checkCondition(
     list[Diagnostic] result = [];
 
     if (andCondition(left, right) := condition) {
-        result = result + checkCondition(ruleName, left, declarations);
-        result = result + checkCondition(ruleName, right, declarations);
-        return result;
+        return checkCondition(ruleName, left, declarations)
+            + checkCondition(ruleName, right, declarations);
     }
 
     if (orCondition(left, right) := condition) {
-        result = result + checkCondition(ruleName, left, declarations);
-        result = result + checkCondition(ruleName, right, declarations);
-        return result;
+        return checkCondition(ruleName, left, declarations)
+            + checkCondition(ruleName, right, declarations);
     }
 
     if (notCondition(inner) := condition) {
@@ -202,7 +521,6 @@ list[Diagnostic] checkCondition(
             declarations
         );
     }
-
 
     if (authoredBy(memberName) := condition) {
         result = result + checkMemberReference(
@@ -261,7 +579,6 @@ list[Diagnostic] checkCondition(
 
 
 // Action checks
-
 list[Diagnostic] checkAction(
     str ruleName,
     Action currentAction,
@@ -300,7 +617,6 @@ list[Diagnostic] checkAction(
             declarations
         );
     }
-
 
     if (assignMember(memberName) := currentAction) {
         result = result + checkAssignableMemberReference(
@@ -375,5 +691,3 @@ list[Diagnostic] checkAction(
 
     return result;
 }
-
-

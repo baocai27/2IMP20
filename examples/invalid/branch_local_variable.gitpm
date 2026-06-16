@@ -1,0 +1,28 @@
+repository Demo;
+
+member Alice role developer workloadLimit 3;
+
+label bug;
+
+board MainBoard {
+    column Backlog;
+}
+
+rule BranchLocalVariable {
+    on issue opened;
+    when hasLabel(bug);
+    do {
+        if titleContains("urgent") then {
+            let branchPriority = "critical";
+            add comment "Urgent branch.";
+        } else {
+            add comment "Regular branch.";
+        }
+
+        if branchPriority == "critical" then {
+            set priority critical;
+        } else {
+            set priority medium;
+        }
+    }
+}

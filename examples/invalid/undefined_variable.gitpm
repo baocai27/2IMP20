@@ -1,0 +1,21 @@
+repository Demo;
+
+member Alice role developer workloadLimit 3;
+
+label bug;
+
+board MainBoard {
+    column Backlog;
+}
+
+rule UndefinedVariable {
+    on issue opened;
+    when hasLabel(bug);
+    do {
+        if urgentIssue then {
+            set priority critical;
+        } else {
+            set priority medium;
+        }
+    }
+}

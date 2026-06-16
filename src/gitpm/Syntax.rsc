@@ -10,11 +10,15 @@ lexical WhitespaceOrComment
 lexical LineComment
     = "//" ![\n\r]*;
 
+lexical RawIdentifier
+    = [A-Za-z][A-Za-z0-9_]*
+      !>> [A-Za-z0-9_];
+
 lexical Identifier
-    = [A-Za-z][A-Za-z0-9_]* \ Keywords;
+    = RawIdentifier \ Keywords;
 
 lexical IntegerLiteral
-    = [0-9]+;
+    = [0-9]+ !>> [0-9];
 
 lexical StringLiteral
     = "\"" ![\"\n\r]* "\"";
@@ -32,6 +36,10 @@ keyword Keywords
     | "on"
     | "when"
     | "do"
+    | "let"
+    | "if"
+    | "then"
+    | "else"
     | "issue"
     | "pull"
     | "request"
@@ -50,6 +58,7 @@ keyword Keywords
     | "submitted"
     | "days"
     | "true"
+    | "false"
     | "and"
     | "or"
     | "not"
@@ -71,6 +80,8 @@ keyword Keywords
     | "reviewedBy"
     | "reviewRequestedFrom"
     | "isMerged"
+    | "inactiveDays"
+    | "reviewerCount"
     | "add"
     | "remove"
     | "move"
@@ -151,9 +162,26 @@ syntax CstRule
             "when" CstCondition ";"
             "do"
             "{"
-                CstAction*
+                CstStatement*
             "}"
         "}";
+
+syntax CstStatement
+    = actionStatement: CstAction
+
+    | variableDeclaration:
+        "let" Identifier "=" CstExpression ";"
+
+    | ifStatement:
+        "if" CstExpression "then"
+        "{"
+            CstStatement*
+        "}"
+        "else"
+        "{"
+            CstStatement*
+        "}";
+
 
 syntax CstEvent
     = issueOpenedEvent: "issue" "opened"
@@ -180,11 +208,11 @@ syntax CstCondition
 
 syntax CstOrCondition
     = orCondition:
-        CstAndCondition ("or" CstAndCondition)*;
+        {CstAndCondition "or"}+;
 
 syntax CstAndCondition
     = andCondition:
-        CstUnaryCondition ("and" CstUnaryCondition)*;
+        {CstUnaryCondition "and"}+;
 
 syntax CstUnaryCondition
     = notCondition: "not" CstUnaryCondition
@@ -211,6 +239,81 @@ syntax CstAtomicCondition
     | reviewedByCondition: "reviewedBy" "(" CstName ")"
     | reviewRequestedFromCondition: "reviewRequestedFrom" "(" CstName ")"
     | isMergedCondition: "isMerged" "(" ")";
+
+syntax CstExpression
+    = expression: CstOrExpression;
+
+
+syntax CstOrExpression
+    = orExpression:
+        {CstAndExpression "or"}+;
+
+syntax CstAndExpression
+    = andExpression:
+        {CstComparisonExpression "and"}+;
+
+
+syntax CstComparisonExpression
+    = comparisonExpression:
+        CstUnaryExpression
+
+    | comparisonExpression:
+        CstUnaryExpression CstComparisonTail;
+
+
+syntax CstComparisonTail
+    = equalsComparison:
+        "==" CstUnaryExpression
+
+    | notEqualsComparison:
+        "!=" CstUnaryExpression
+
+    | lessThanComparison:
+        "\<" CstUnaryExpression
+
+    | lessOrEqualComparison:
+        "\<=" CstUnaryExpression
+
+    | greaterThanComparison:
+        "\>" CstUnaryExpression
+
+    | greaterOrEqualComparison:
+        "\>=" CstUnaryExpression;
+
+
+syntax CstUnaryExpression
+    = notExpression:
+        "not" CstUnaryExpression
+
+    | groupedExpression:
+        "(" CstExpression ")"
+
+    | atomicExpression:
+        CstAtomicExpression;
+
+
+syntax CstAtomicExpression
+    = falseExpression:
+        "false"
+
+    | integerExpression:
+        IntegerLiteral
+
+    | stringExpression:
+        StringLiteral
+
+    | variableExpression:
+        Identifier
+
+    | conditionExpression:
+        CstAtomicCondition
+
+    | inactiveDaysExpression:
+        "inactiveDays" "(" ")"
+
+    | reviewerCountExpression:
+        "reviewerCount" "(" ")";
+
 
 syntax CstAction
     = addLabelAction: "add" "label" CstName ";"

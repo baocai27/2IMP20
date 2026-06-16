@@ -65,8 +65,16 @@ void printDiagnostics(list[Diagnostic] diagnostics) {
 // Compiles the bug-assignment example.
 CompilationResult compileBugAssignmentExample() {
     return compileProgram(
-        |file:///C:/Users/13157/Desktop/2IMP20/examples/valid/bug_assignment.gitpm|,
-        |file:///C:/Users/13157/Desktop/2IMP20/generated/bug_assignment_bot.py|
+        |cwd:///examples/valid/bug_assignment.gitpm|,
+        |cwd:///generated/bug_assignment_bot.py|
+    );
+}
+
+// Compiles the variables-and-branching example.
+CompilationResult compileConditionalTriageExample() {
+    return compileProgram(
+        |cwd:///examples/valid/conditional_triage.gitpm|,
+        |cwd:///generated/conditional_triage_bot.py|
     );
 }
 
@@ -74,8 +82,8 @@ CompilationResult compileBugAssignmentExample() {
 // Compiles the complete example.
 CompilationResult compileCompleteExample() {
     return compileProgram(
-        |file:///C:/Users/13157/Desktop/2IMP20/examples/valid/complete.gitpm|,
-        |file:///C:/Users/13157/Desktop/2IMP20/generated/complete_bot.py|
+        |cwd:///examples/valid/complete.gitpm|,
+        |cwd:///generated/complete_bot.py|
     );
 }
 
@@ -83,8 +91,8 @@ CompilationResult compileCompleteExample() {
 // Compiles the round-robin example.
 CompilationResult compileRoundRobinExample() {
     return compileProgram(
-        |file:///C:/Users/13157/Desktop/2IMP20/examples/valid/round_robin.gitpm|,
-        |file:///C:/Users/13157/Desktop/2IMP20/generated/round_robin_bot.py|
+        |cwd:///examples/valid/round_robin.gitpm|,
+        |cwd:///generated/round_robin_bot.py|
     );
 }
 
@@ -92,8 +100,8 @@ CompilationResult compileRoundRobinExample() {
 // Compiles the security-review example.
 CompilationResult compileSecurityReviewExample() {
     return compileProgram(
-        |file:///C:/Users/13157/Desktop/2IMP20/examples/valid/security_review.gitpm|,
-        |file:///C:/Users/13157/Desktop/2IMP20/generated/security_review_bot.py|
+        |cwd:///examples/valid/security_review.gitpm|,
+        |cwd:///generated/security_review_bot.py|
     );
 }
 
@@ -101,8 +109,8 @@ CompilationResult compileSecurityReviewExample() {
 // Compiles the stale-issues example.
 CompilationResult compileStaleIssuesExample() {
     return compileProgram(
-        |file:///C:/Users/13157/Desktop/2IMP20/examples/valid/stale_issues.gitpm|,
-        |file:///C:/Users/13157/Desktop/2IMP20/generated/stale_issues_bot.py|
+        |cwd:///examples/valid/stale_issues.gitpm|,
+        |cwd:///generated/stale_issues_bot.py|
     );
 }
 
@@ -115,11 +123,12 @@ list[CompilationResult] buildAllExamples() {
     println("");
 
     list[CompilationResult] results = [
-        compileBugAssignmentExample(),
-        compileCompleteExample(),
-        compileRoundRobinExample(),
-        compileSecurityReviewExample(),
-        compileStaleIssuesExample()
+    compileBugAssignmentExample(),
+    compileConditionalTriageExample(),
+    compileCompleteExample(),
+    compileRoundRobinExample(),
+    compileSecurityReviewExample(),
+    compileStaleIssuesExample()
     ];
 
     int generatedCount =
