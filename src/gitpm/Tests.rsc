@@ -787,3 +787,32 @@ test bool generatorIncludesVariablesAndBranching() {
             "\"kind\": \"variable\""
         );
 }
+
+test bool detectsMissingBoard() {
+    str sourceText =
+        "repository Demo;\n"
+        + "member Alice role developer workloadLimit 3;\n"
+        + "rule KeepOpen {\n"
+        + "    on issue opened;\n"
+        + "    when true;\n"
+        + "    do { add comment \"Opened.\"; }\n"
+        + "}\n";
+
+    return hasErrors(checkProgram(parseText(sourceText)));
+}
+
+
+test bool detectsMultipleBoards() {
+    str sourceText =
+        "repository Demo;\n"
+        + "member Alice role developer workloadLimit 3;\n"
+        + "board MainBoard { column Backlog; }\n"
+        + "board ReleaseBoard { column Done; }\n"
+        + "rule KeepOpen {\n"
+        + "    on issue opened;\n"
+        + "    when true;\n"
+        + "    do { add comment \"Opened.\"; }\n"
+        + "}\n";
+
+    return hasErrors(checkProgram(parseText(sourceText)));
+}

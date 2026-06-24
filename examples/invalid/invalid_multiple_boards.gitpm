@@ -1,0 +1,19 @@
+repository DemoRepository;
+
+member Alice role developer workloadLimit 3;
+
+board MainBoard {
+    column Backlog;
+}
+
+board ReleaseBoard {
+    column Done;
+}
+
+rule KeepIssueOpen {
+    on issue opened;
+    when true;
+    do {
+        add comment "GitPM supports one board per program.";
+    }
+}

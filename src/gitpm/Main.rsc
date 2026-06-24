@@ -160,6 +160,77 @@ list[CompilationResult] buildAllExamples() {
 }
 
 
+list[loc] invalidExampleFiles() {
+    return [
+        |cwd:///examples/invalid/branch_local_variable.gitpm|,
+        |cwd:///examples/invalid/duplicate_label.gitpm|,
+        |cwd:///examples/invalid/duplicate_member.gitpm|,
+        |cwd:///examples/invalid/duplicate_rule.gitpm|,
+        |cwd:///examples/invalid/duplicate_variable.gitpm|,
+        |cwd:///examples/invalid/empty_rule.gitpm|,
+        |cwd:///examples/invalid/expression_type_mismatch.gitpm|,
+        |cwd:///examples/invalid/invalid_inactive_days.gitpm|,
+        |cwd:///examples/invalid/invalid_missing_board.gitpm|,
+        |cwd:///examples/invalid/invalid_multiple_boards.gitpm|,
+        |cwd:///examples/invalid/invalid_workload.gitpm|,
+        |cwd:///examples/invalid/issue_with_pr_condition.gitpm|,
+        |cwd:///examples/invalid/missing_developer.gitpm|,
+        |cwd:///examples/invalid/missing_repository.gitpm|,
+        |cwd:///examples/invalid/missing_reviewer.gitpm|,
+        |cwd:///examples/invalid/non_boolean_if_condition.gitpm|,
+        |cwd:///examples/invalid/pr_with_issue_action.gitpm|,
+        |cwd:///examples/invalid/undefined_column.gitpm|,
+        |cwd:///examples/invalid/undefined_label.gitpm|,
+        |cwd:///examples/invalid/undefined_member.gitpm|,
+        |cwd:///examples/invalid/undefined_milestone.gitpm|,
+        |cwd:///examples/invalid/undefined_variable.gitpm|
+    ];
+}
+
+
+bool validateAllInvalidExamples() {
+    println("============================================");
+    println(" VALIDATING ALL INVALID GITPM EXAMPLES");
+    println("============================================");
+    println("");
+
+    int rejectedCount = 0;
+    int acceptedCount = 0;
+
+    for (loc sourceFile <- invalidExampleFiles()) {
+        list[Diagnostic] diagnostics = validateFile(sourceFile);
+
+        if (hasErrors(diagnostics)) {
+            rejectedCount = rejectedCount + 1;
+            println("SUCCESS: <sourceFile> was rejected.");
+        }
+        else {
+            acceptedCount = acceptedCount + 1;
+            println("FAILURE: <sourceFile> was accepted unexpectedly.");
+        }
+    }
+
+    int totalCount = size(invalidExampleFiles());
+
+    println("");
+    println("============================================");
+    println(" INVALID EXAMPLE SUMMARY");
+    println("============================================");
+    println("Expected invalid programs: <totalCount>");
+    println("Rejected programs: <rejectedCount>");
+    println("Incorrectly accepted programs: <acceptedCount>");
+
+    if (acceptedCount == 0) {
+        println("All invalid examples were rejected successfully.");
+    }
+    else {
+        println("One or more invalid examples were accepted unexpectedly.");
+    }
+
+    return acceptedCount == 0;
+}
+
+
 // Backwards-compatible convenience entry point.
 CompilationResult compileExample() {
     return compileCompleteExample();

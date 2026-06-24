@@ -162,9 +162,20 @@ syntax CstRule
             "when" CstCondition ";"
             "do"
             "{"
-                CstStatement*
+                CstStatement+
+            "}"
+        "}"
+
+    | emptyAutomationRule:
+        "rule" CstName
+        "{"
+            "on" CstEvent ";"
+            "when" CstCondition ";"
+            "do"
+            "{"
             "}"
         "}";
+
 
 syntax CstStatement
     = actionStatement: CstAction

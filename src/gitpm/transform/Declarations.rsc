@@ -142,7 +142,7 @@ gitpm::AST::BoardColumn buildBoardColumn(
 
 gitpm::AST::Rule buildRule(
     (CstRule)
-        `rule <CstName name> { on <CstEvent event>; when <CstCondition condition>; do { <CstStatement* statements> } }`
+        `rule <CstName name> { on <CstEvent event>; when <CstCondition condition>; do { <CstStatement+ statements> } }`
 ) {
     return gitpm::AST::rule(
         buildName(name),
@@ -155,4 +155,14 @@ gitpm::AST::Rule buildRule(
     );
 }
 
-// Issue events
+gitpm::AST::Rule buildRule(
+    (CstRule)
+        `rule <CstName name> { on <CstEvent event>; when <CstCondition condition>; do { } }`
+) {
+    return gitpm::AST::rule(
+        buildName(name),
+        buildEvent(event),
+        buildCondition(condition),
+        []
+    );
+}

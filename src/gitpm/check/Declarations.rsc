@@ -62,6 +62,24 @@ list[Diagnostic] checkDeclarations(list[Declaration] declarations) {
         ];
     }
 
+    if (List::size(boardNames) == 0) {
+        result = result + [
+            diagnostic(
+                errorSeverity(),
+                "The program must declare one project board."
+            )
+        ];
+    }
+
+    if (List::size(boardNames) > 1) {
+        result = result + [
+            diagnostic(
+                errorSeverity(),
+                "The program may only declare one project board."
+            )
+        ];
+    }
+
     result = result + duplicateDiagnostics("repository", repositoryNames);
     result = result + duplicateDiagnostics("member", memberNames);
     result = result + duplicateDiagnostics("label", labelNames);

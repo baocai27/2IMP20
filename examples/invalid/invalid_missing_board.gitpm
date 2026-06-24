@@ -1,0 +1,11 @@
+repository DemoRepository;
+
+member Alice role developer workloadLimit 3;
+
+rule KeepIssueOpen {
+    on issue opened;
+    when true;
+    do {
+        add comment "A project board is required by GitPM.";
+    }
+}
